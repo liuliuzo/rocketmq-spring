@@ -120,6 +120,7 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
     private String selectorExpression;
     private MessageModel messageModel;
     private long consumeTimeout;
+    private int maxReconsumeTimes;
 
     public long getSuspendCurrentQueueTimeMillis() {
         return suspendCurrentQueueTimeMillis;
@@ -219,6 +220,7 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
         this.selectorType = anno.selectorType();
         this.selectorExpression = anno.selectorExpression();
         this.consumeTimeout = anno.consumeTimeout();
+        this.maxReconsumeTimes = anno.maxReconsumeTimes();
     }
 
     public ConsumeMode getConsumeMode() {
@@ -457,7 +459,7 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
 
     @SuppressWarnings("unchecked")
     private Object doConvertMessage(MessageExt messageExt) {
-        if (Objects.equals(messageType, MessageExt.class)) {
+        if (Objects.equals(messageType, MessageExt.class) || Objects.equals(messageType, org.apache.rocketmq.common.message.Message.class)) {
             return messageExt;
         } else {
             String str = new String(messageExt.getBody(), Charset.forName(charset));
@@ -578,7 +580,7 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
             consumer.setConsumeThreadMin(consumeThreadMax);
         }
         consumer.setConsumeTimeout(consumeTimeout);
-
+        consumer.setMaxReconsumeTimes(maxReconsumeTimes);
         switch (messageModel) {
             case BROADCASTING:
                 consumer.setMessageModel(org.apache.rocketmq.common.protocol.heartbeat.MessageModel.BROADCASTING);
