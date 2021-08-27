@@ -122,13 +122,14 @@ public class ExtConsumerResetConfiguration implements ApplicationContextAware, S
         String accessChannel = resolvePlaceholders(annotation.accessChannel(), rocketMQProperties.getAccessChannel());
         MessageModel messageModel = annotation.messageModel();
         SelectorType selectorType = annotation.selectorType();
-        String selectorExpression = annotation.selectorExpression();
+        String selectorExpression = resolvePlaceholders(annotation.selectorExpression(), consumerConfig.getSelectorExpression());
         String ak = resolvePlaceholders(annotation.accessKey(), consumerConfig.getAccessKey());
         String sk = resolvePlaceholders(annotation.secretKey(), consumerConfig.getSecretKey());
         int pullBatchSize = annotation.pullBatchSize();
-
         DefaultLitePullConsumer litePullConsumer = RocketMQUtil.createDefaultLitePullConsumer(nameServer, accessChannel,
                 groupName, topicName, messageModel, selectorType, selectorExpression, ak, sk, pullBatchSize);
+        litePullConsumer.setEnableMsgTrace(annotation.enableMsgTrace());
+        litePullConsumer.setCustomizedTraceTopic(resolvePlaceholders(annotation.customizedTraceTopic(), consumerConfig.getCustomizedTraceTopic()));
         return litePullConsumer;
     }
 
