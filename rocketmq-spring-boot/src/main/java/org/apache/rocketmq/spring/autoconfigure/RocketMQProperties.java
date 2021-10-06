@@ -81,6 +81,11 @@ public class RocketMQProperties {
         private String group;
 
         /**
+         * Namespace for this MQ Producer instance.
+         */
+        private String namespace;
+
+        /**
          * Millis of send message timeout.
          */
         private int sendMessageTimeout = 3000;
@@ -131,6 +136,11 @@ public class RocketMQProperties {
          * The name value of message trace topic.If you don't config,you can use the default trace topic name.
          */
         private String customizedTraceTopic = TopicValidator.RMQ_SYS_TRACE_TOPIC;
+
+        /**
+         * The property of "tlsEnable".
+         */
+        private boolean tlsEnable = false;
 
         public String getGroup() {
             return group;
@@ -219,6 +229,22 @@ public class RocketMQProperties {
         public void setCustomizedTraceTopic(String customizedTraceTopic) {
             this.customizedTraceTopic = customizedTraceTopic;
         }
+
+        public boolean isTlsEnable() {
+            return tlsEnable;
+        }
+
+        public void setTlsEnable(boolean tlsEnable) {
+            this.tlsEnable = tlsEnable;
+        }
+
+        public String getNamespace() {
+            return namespace;
+        }
+
+        public void setNamespace(String namespace) {
+            this.namespace = namespace;
+        }
     }
 
     public Consumer getConsumer() {
@@ -234,6 +260,11 @@ public class RocketMQProperties {
          * Group name of consumer.
          */
         private String group;
+
+        /**
+         * Namespace for this MQ Consumer instance.
+         */
+        private String namespace;
 
         /**
          * Topic name of consumer.
@@ -289,6 +320,11 @@ public class RocketMQProperties {
          * group3.topic3 = false
          */
         private Map<String, Map<String, Boolean>> listeners = new HashMap<>();
+
+        /**
+         * The property of "tlsEnable".
+         */
+        private boolean tlsEnable = false;
 
         public String getGroup() {
             return group;
@@ -376,6 +412,22 @@ public class RocketMQProperties {
 
         public void setCustomizedTraceTopic(String customizedTraceTopic) {
             this.customizedTraceTopic = customizedTraceTopic;
+        }
+
+        public boolean isTlsEnable() {
+            return tlsEnable;
+        }
+
+        public void setTlsEnable(boolean tlsEnable) {
+            this.tlsEnable = tlsEnable;
+        }
+
+        public String getNamespace() {
+            return namespace;
+        }
+
+        public void setNamespace(String namespace) {
+            this.namespace = namespace;
         }
     }
 
