@@ -79,11 +79,19 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
      */
     private String name;
 
+    /**
+     * Suspending pulling time in orderly mode.
+     *
+     * The minimum value is 10 and the maximum is 30000.
+     */
     private long suspendCurrentQueueTimeMillis = 1000;
 
     /**
-     * Message consume retry strategy<br> -1,no retry,put into DLQ directly<br> 0,broker control retry frequency<br>
-     * >0,client control retry frequency.
+     * Message consume retry strategy in concurrently mode.
+     *
+     * -1,no retry,put into DLQ directly
+     * 0,broker control retry frequency
+     * >0,client control retry frequency
      */
     private int delayLevelWhenNextConsume = 0;
 
@@ -96,6 +104,8 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
     private String topic;
 
     private int consumeThreadMax = 64;
+
+    private int consumeThreadNumber = 20;
 
     private String charset = "UTF-8";
 
@@ -125,6 +135,9 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
     private int replyTimeout;
     private String tlsEnable;
     private String namespace;
+    private long awaitTerminationMillisWhenShutdown;
+
+    private String instanceName;
 
     public long getSuspendCurrentQueueTimeMillis() {
         return suspendCurrentQueueTimeMillis;
@@ -178,6 +191,10 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
         return consumeThreadMax;
     }
 
+    public int getConsumeThreadNumber() {
+        return consumeThreadNumber;
+    }
+
     public String getCharset() {
         return charset;
     }
@@ -219,7 +236,8 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
         this.rocketMQMessageListener = anno;
 
         this.consumeMode = anno.consumeMode();
-        this.consumeThreadMax = anno.consumeThreadMax();
+        this.consumeThreadMax = anno.consumeThreadNumber();
+        this.consumeThreadNumber = anno.consumeThreadNumber();
         this.messageModel = anno.messageModel();
         this.selectorType = anno.selectorType();
         this.selectorExpression = anno.selectorExpression();
@@ -228,6 +246,10 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
         this.replyTimeout = anno.replyTimeout();
         this.tlsEnable = anno.tlsEnable();
         this.namespace = anno.namespace();
+        this.delayLevelWhenNextConsume = anno.delayLevelWhenNextConsume();
+        this.suspendCurrentQueueTimeMillis = anno.suspendCurrentQueueTimeMillis();
+        this.awaitTerminationMillisWhenShutdown = Math.max(0, anno.awaitTerminationMillisWhenShutdown());
+        this.instanceName = anno.instanceName();
     }
 
     public ConsumeMode getConsumeMode() {
@@ -272,6 +294,23 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
 
     public void setConsumer(DefaultMQPushConsumer consumer) {
         this.consumer = consumer;
+    }
+
+    public long getAwaitTerminationMillisWhenShutdown() {
+        return awaitTerminationMillisWhenShutdown;
+    }
+
+    public String getInstanceName() {
+        return instanceName;
+    }
+
+    public void setInstanceName(String instanceName) {
+        this.instanceName = instanceName;
+    }
+
+    public DefaultRocketMQListenerContainer setAwaitTerminationMillisWhenShutdown(long awaitTerminationMillisWhenShutdown) {
+        this.awaitTerminationMillisWhenShutdown = awaitTerminationMillisWhenShutdown;
+        return this;
     }
 
     @Override
@@ -362,6 +401,7 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
             ", selectorExpression='" + selectorExpression + '\'' +
             ", messageModel=" + messageModel + '\'' +
             ", tlsEnable=" + tlsEnable +
+            ", instanceName=" + instanceName +
             '}';
     }
 
@@ -591,7 +631,6 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
                     resolveRequiredPlaceholders(this.rocketMQMessageListener.customizedTraceTopic()));
         }
         consumer.setNamespace(namespace);
-        consumer.setInstanceName(RocketMQUtil.getInstanceName(nameServer));
 
         String customizedNameServer = this.applicationContext.getEnvironment().resolveRequiredPlaceholders(this.rocketMQMessageListener.nameServer());
         if (customizedNameServer != null) {
@@ -602,12 +641,13 @@ public class DefaultRocketMQListenerContainer implements InitializingBean,
         if (accessChannel != null) {
             consumer.setAccessChannel(accessChannel);
         }
-        consumer.setConsumeThreadMax(consumeThreadMax);
-        if (consumeThreadMax < consumer.getConsumeThreadMin()) {
-            consumer.setConsumeThreadMin(consumeThreadMax);
-        }
+        //set the consumer core thread number and maximum thread number has the same value
+        consumer.setConsumeThreadMax(consumeThreadNumber);
+        consumer.setConsumeThreadMin(consumeThreadNumber);
         consumer.setConsumeTimeout(consumeTimeout);
         consumer.setMaxReconsumeTimes(maxReconsumeTimes);
+        consumer.setAwaitTerminationMillisWhenShutdown(awaitTerminationMillisWhenShutdown);
+        consumer.setInstanceName(instanceName);
         switch (messageModel) {
             case BROADCASTING:
                 consumer.setMessageModel(org.apache.rocketmq.common.protocol.heartbeat.MessageModel.BROADCASTING);

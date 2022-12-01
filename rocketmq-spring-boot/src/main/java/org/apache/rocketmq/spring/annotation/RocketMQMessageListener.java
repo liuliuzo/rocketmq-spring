@@ -22,6 +22,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -29,9 +30,9 @@ import java.lang.annotation.Target;
 public @interface RocketMQMessageListener {
 
     String NAME_SERVER_PLACEHOLDER = "${rocketmq.name-server:}";
-    String ACCESS_KEY_PLACEHOLDER = "${rocketmq.consumer.access-key:}";
-    String SECRET_KEY_PLACEHOLDER = "${rocketmq.consumer.secret-key:}";
-    String TRACE_TOPIC_PLACEHOLDER = "${rocketmq.consumer.customized-trace-topic:}";
+    String ACCESS_KEY_PLACEHOLDER = "${rocketmq.push-consumer.access-key:}";
+    String SECRET_KEY_PLACEHOLDER = "${rocketmq.push-consumer.secret-key:}";
+    String TRACE_TOPIC_PLACEHOLDER = "${rocketmq.push-consumer.customized-trace-topic:}";
     String ACCESS_CHANNEL_PLACEHOLDER = "${rocketmq.access-channel:}";
 
     /**
@@ -72,8 +73,18 @@ public @interface RocketMQMessageListener {
 
     /**
      * Max consumer thread number.
+     * @deprecated This property is not work well, because the consumer thread pool executor use
+     * {@link LinkedBlockingQueue} with default capacity bound (Integer.MAX_VALUE), use
+     * {@link RocketMQMessageListener#consumeThreadNumber} .
+     * @see <a href="https://github.com/apache/rocketmq-spring/issues/429">issues#429</a>
      */
+    @Deprecated
     int consumeThreadMax() default 64;
+
+    /**
+     * consumer thread number.
+     */
+    int consumeThreadNumber() default 20;
 
     /**
      * Max re-consume times.
@@ -132,4 +143,31 @@ public @interface RocketMQMessageListener {
      * The namespace of consumer.
      */
     String namespace() default "";
+
+    /**
+     * Message consume retry strategy in concurrently mode.
+     *
+     * -1,no retry,put into DLQ directly
+     * 0,broker control retry frequency
+     * >0,client control retry frequency
+     */
+    int delayLevelWhenNextConsume() default 0;
+
+    /**
+     * The interval of suspending the pull in orderly mode, in milliseconds.
+     *
+     * The minimum value is 10 and the maximum is 30000.
+     */
+    int suspendCurrentQueueTimeMillis() default 1000;
+
+    /**
+     * Maximum time to await message consuming when shutdown consumer, in milliseconds.
+     * The minimum value is 0
+     */
+    int awaitTerminationMillisWhenShutdown() default 1000;
+
+    /**
+     * The property of "instanceName".
+     */
+    String instanceName() default "DEFAULT";
 }

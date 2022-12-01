@@ -17,6 +17,10 @@
 package org.apache.rocketmq.spring.support;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.lang.reflect.Field;
+import java.nio.charset.Charset;
+import java.util.Map;
+import java.util.Objects;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.AccessChannel;
@@ -30,7 +34,6 @@ import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -47,12 +50,8 @@ import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.converter.MessageConverter;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
-
-import java.lang.reflect.Field;
-import java.nio.charset.Charset;
-import java.util.Map;
-import java.util.Objects;
 
 public class RocketMQUtil {
     private final static Logger log = LoggerFactory.getLogger(RocketMQUtil.class);
@@ -105,7 +104,9 @@ public class RocketMQUtil {
                 setHeader(toRocketHeaderKey(RocketMQHeaders.FLAG), message.getFlag()).
                 setHeader(toRocketHeaderKey(RocketMQHeaders.QUEUE_ID), message.getQueueId()).
                 setHeader(toRocketHeaderKey(RocketMQHeaders.SYS_FLAG), message.getSysFlag()).
-                setHeader(toRocketHeaderKey(RocketMQHeaders.TRANSACTION_ID), message.getTransactionId());
+                setHeader(toRocketHeaderKey(RocketMQHeaders.TRANSACTION_ID), message.getTransactionId()).
+                setHeader(toRocketHeaderKey(RocketMQHeaders.DELAY), message.getDelayTimeLevel()).
+                setHeader(toRocketHeaderKey(RocketMQHeaders.WAIT), message.isWaitStoreMsgOK());
         addUserProperties(message.getProperties(), messageBuilder);
         return messageBuilder.build();
     }
@@ -178,10 +179,10 @@ public class RocketMQUtil {
         if (Objects.nonNull(headers) && !headers.isEmpty()) {
             Object keys = headers.get(RocketMQHeaders.KEYS);
             // if headers not have 'KEYS', try add prefix when getting keys
-            if (StringUtils.isEmpty(keys)) {
+            if (ObjectUtils.isEmpty(keys)) {
                 keys = headers.get(toRocketHeaderKey(RocketMQHeaders.KEYS));
             }
-            if (!StringUtils.isEmpty(keys)) { // if headers has 'KEYS', set rocketMQ message key
+            if (!ObjectUtils.isEmpty(keys)) { // if headers has 'KEYS', set rocketMQ message key
                 rocketMsg.setKeys(keys.toString());
             }
             Object flagObj = headers.getOrDefault("FLAG", "0");
@@ -248,7 +249,7 @@ public class RocketMQUtil {
             ak = null;
             sk = null;
         }
-        if (!StringUtils.isEmpty(ak) && !StringUtils.isEmpty(sk)) {
+        if (StringUtils.hasLength(ak) && StringUtils.hasLength(sk)) {
             return new AclClientRPCHook(new SessionCredentials(ak, sk));
         }
         return null;
@@ -257,7 +258,7 @@ public class RocketMQUtil {
     public static DefaultMQProducer createDefaultMQProducer(String groupName, String ak, String sk,
         boolean isEnableMsgTrace, String customizedTraceTopic) {
 
-        boolean isEnableAcl = !StringUtils.isEmpty(ak) && !StringUtils.isEmpty(sk);
+        boolean isEnableAcl = StringUtils.hasLength(ak) && StringUtils.hasLength(sk);
         DefaultMQProducer producer;
         if (isEnableAcl) {
             producer = new TransactionMQProducer(groupName, new AclClientRPCHook(new SessionCredentials(ak, sk)));
@@ -282,29 +283,19 @@ public class RocketMQUtil {
 
         return producer;
     }
-    
-    public static String getInstanceName(String identify) {
-        char separator = '@';
-        StringBuilder instanceName = new StringBuilder();
-        instanceName.append(identify)
-                .append(separator).append(UtilAll.getPid())
-                .append(separator).append(System.nanoTime());
-        return instanceName.toString();
-    }
 
     public static DefaultLitePullConsumer createDefaultLitePullConsumer(String nameServer, String accessChannel,
             String groupName, String topicName, MessageModel messageModel, SelectorType selectorType,
             String selectorExpression, String ak, String sk, int pullBatchSize, boolean useTLS)
             throws MQClientException {
         DefaultLitePullConsumer litePullConsumer = null;
-        if (!StringUtils.isEmpty(ak) && !StringUtils.isEmpty(sk)) {
+        if (StringUtils.hasLength(ak) && StringUtils.hasLength(sk)) {
             litePullConsumer = new DefaultLitePullConsumer(groupName, new AclClientRPCHook(new SessionCredentials(ak, sk)));
             litePullConsumer.setVipChannelEnabled(false);
         } else {
             litePullConsumer = new DefaultLitePullConsumer(groupName);
         }
         litePullConsumer.setNamesrvAddr(nameServer);
-        litePullConsumer.setInstanceName(RocketMQUtil.getInstanceName(nameServer));
         litePullConsumer.setPullBatchSize(pullBatchSize);
         if (accessChannel != null) {
             litePullConsumer.setAccessChannel(AccessChannel.valueOf(accessChannel));
@@ -334,5 +325,11 @@ public class RocketMQUtil {
         }
 
         return litePullConsumer;
+    }
+
+    public static String getNamespace(String specifiedNamespace, String defaultNamespace) {
+        // prefer to use annotation namespace
+        // if is empty a default namespace will be used
+        return !StringUtils.hasLength(specifiedNamespace) && StringUtils.hasLength(defaultNamespace) ? defaultNamespace : specifiedNamespace;
     }
 }
