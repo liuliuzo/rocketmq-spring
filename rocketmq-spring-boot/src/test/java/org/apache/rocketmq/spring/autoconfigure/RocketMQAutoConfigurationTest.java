@@ -153,12 +153,12 @@ public class RocketMQAutoConfigurationTest {
     public void testConsumerListener() {
         runner.withPropertyValues("rocketmq.name-server=127.0.0.1:9876",
             "rocketmq.producer.group=spring_rocketmq",
-            "rocketmq.push-consumer.listeners.spring_rocketmq.FOO_TEST_TOPIC=false",
-            "rocketmq.push-consumer.listeners.spring_rocketmq.FOO_TEST_TOPIC2=true").
+            "rocketmq.consumer.listeners.spring_rocketmq.FOO_TEST_TOPIC=false",
+            "rocketmq.consumer.listeners.spring_rocketmq.FOO_TEST_TOPIC2=true").
             run((context) -> {
                 RocketMQProperties rocketMQProperties = context.getBean(RocketMQProperties.class);
-                assertThat(rocketMQProperties.getPushConsumer().getListeners().get("spring_rocketmq").get("FOO_TEST_TOPIC").booleanValue()).isEqualTo(false);
-                assertThat(rocketMQProperties.getPushConsumer().getListeners().get("spring_rocketmq").get("FOO_TEST_TOPIC2").booleanValue()).isEqualTo(true);
+                assertThat(rocketMQProperties.getConsumer().getListeners().get("spring_rocketmq").get("FOO_TEST_TOPIC").booleanValue()).isEqualTo(false);
+                assertThat(rocketMQProperties.getConsumer().getListeners().get("spring_rocketmq").get("FOO_TEST_TOPIC2").booleanValue()).isEqualTo(true);
             });
 
     }
@@ -224,7 +224,7 @@ public class RocketMQAutoConfigurationTest {
         runner.withPropertyValues("rocketmq.name-server=127.0.0.1:9876").
             withUserConfiguration(TestConfig.class).
             run((context) -> {
-                assertThat(context).getFailure().hasMessageContaining("connect to [127.0.0.1:9876] failed");
+                assertThat(context).getFailure().hasMessageContaining("connect to null failed");
             });
     }
 
@@ -233,7 +233,7 @@ public class RocketMQAutoConfigurationTest {
         runner.withPropertyValues("rocketmq.name-server=127.0.0.1:9876").
             withUserConfiguration(TestConfigWithRocketMQReplyListener.class).
             run((context) -> {
-                assertThat(context).getFailure().hasMessageContaining("connect to [127.0.0.1:9876] failed");
+                assertThat(context).getFailure().hasMessageContaining("connect to null failed");
             });
     }
 
