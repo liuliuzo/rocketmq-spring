@@ -27,7 +27,7 @@
     
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-spring-all</artifactId>
-    <version>2.2.3-SNAPSHOT</version>
+    <version>2.3.5-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Apache RocketMQ Spring Boot ${project.version}</name>
@@ -215,6 +215,9 @@
         <module>rocketmq-spring-boot-parent</module>
         <module>rocketmq-spring-boot</module>
         <module>rocketmq-spring-boot-starter</module>
+        <module>rocketmq-v5-client-spring-boot</module>
+        <module>rocketmq-v5-client-spring-boot-parent</module>
+        <module>rocketmq-v5-client-spring-boot-starter</module>
         <!-- Note: The samples need to mvn compiple in its own directory
                 <module>rocketmq-spring-boot-samples</module>
         -->

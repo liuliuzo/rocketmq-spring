@@ -272,7 +272,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param message {@link org.springframework.messaging.Message} the message to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @return
      */
     public void sendAndReceive(String destination, Message<?> message,
@@ -283,7 +283,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param payload the payload to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @return
      */
     public void sendAndReceive(String destination, Object payload,
@@ -294,7 +294,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param message {@link org.springframework.messaging.Message} the message to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @param timeout send timeout in millis
      * @return
      */
@@ -306,7 +306,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param payload the payload to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @param timeout send timeout in millis
      * @return
      */
@@ -318,7 +318,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param message {@link org.springframework.messaging.Message} the message to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @param timeout send timeout in millis
      * @param delayLevel message delay level(0 means no delay)
      * @return
@@ -331,7 +331,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param payload the payload to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @param hashKey needed when sending message orderly
      * @return
      */
@@ -343,7 +343,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param message {@link org.springframework.messaging.Message} the message to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @param hashKey needed when sending message orderly
      * @param timeout send timeout in millis
      * @return
@@ -356,7 +356,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param payload the payload to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @param hashKey needed when sending message orderly
      * @param timeout send timeout in millis
      * @return
@@ -369,7 +369,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param message {@link org.springframework.messaging.Message} the message to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @param hashKey needed when sending message orderly
      * @return
      */
@@ -381,7 +381,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param payload the payload to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @param timeout send timeout in millis
      * @param delayLevel message delay level(0 means no delay)
      * @return
@@ -394,7 +394,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
     /**
      * @param destination formats: `topicName:tags`
      * @param payload the payload to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @param hashKey needed when sending message orderly
      * @param timeout send timeout in millis
      * @param delayLevel message delay level(0 means no delay)
@@ -412,7 +412,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
      *
      * @param destination formats: `topicName:tags`
      * @param message {@link org.springframework.messaging.Message} the message to be sent.
-     * @param rocketMQLocalRequestCallback callback that will invoked when reply message received.
+     * @param rocketMQLocalRequestCallback callback that will be invoked when reply message received.
      * @param hashKey needed when sending message orderly
      * @param timeout send timeout in millis
      * @param delayLevel message delay level(0 means no delay)
@@ -450,8 +450,7 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
             } else {
                 producer.request(rocketMsg, messageQueueSelector, hashKey, requestCallback, timeout);
             }
-        } catch (
-            Exception e) {
+        } catch (Exception e) {
             log.error("send request message failed. destination:{}, message:{} ", destination, message);
             throw new MessagingException(e.getMessage(), e);
         }
@@ -633,23 +632,27 @@ public class RocketMQTemplate extends AbstractMessageSendingTemplate<String> imp
             log.error("syncSend failed. destination:{}, message is null ", destination);
             throw new IllegalArgumentException("`message` and `message.payload` cannot be null");
         }
+        if (Objects.isNull(mode)) {
+            throw new IllegalArgumentException("`delay mode` can be null");
+        }
+        if (delayTime <= 0) {
+            throw new IllegalArgumentException("`delayTime` should be greater than 0");
+        }
         try {
             long now = System.currentTimeMillis();
             org.apache.rocketmq.common.message.Message rocketMsg = this.createRocketMqMessage(destination, message);
-            if (delayTime > 0 && Objects.nonNull(mode)) {
-                switch (mode) {
-                    case DELAY_SECONDS:
-                        rocketMsg.setDelayTimeSec(delayTime);
-                        break;
-                    case DELAY_MILLISECONDS:
-                        rocketMsg.setDelayTimeMs(delayTime);
-                        break;
-                    case DELIVER_TIME_MILLISECONDS:
-                        rocketMsg.setDeliverTimeMs(delayTime);
-                        break;
-                    default:
-                        log.warn("delay mode: {} not support", mode);
-                }
+            switch (mode) {
+                case DELAY_SECONDS:
+                    rocketMsg.setDelayTimeSec(delayTime);
+                    break;
+                case DELAY_MILLISECONDS:
+                    rocketMsg.setDelayTimeMs(delayTime);
+                    break;
+                case DELIVER_TIME_MILLISECONDS:
+                    rocketMsg.setDeliverTimeMs(delayTime);
+                    break;
+                default:
+                    log.warn("delay mode: {} not support", mode);
             }
             SendResult sendResult = producer.send(rocketMsg, timeout);
             long costTime = System.currentTimeMillis() - now;
