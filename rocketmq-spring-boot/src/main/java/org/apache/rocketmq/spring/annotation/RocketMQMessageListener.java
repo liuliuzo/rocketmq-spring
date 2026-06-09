@@ -85,6 +85,13 @@ public @interface RocketMQMessageListener {
     int consumeThreadNumber() default 20;
 
     /**
+     * The batch size of messages delivered to a {@link org.apache.rocketmq.spring.core.RocketMQBatchListener}
+     * in a single invocation. Only takes effect when the listener implements
+     * {@link org.apache.rocketmq.spring.core.RocketMQBatchListener}. The valid range is [1, 1024].
+     */
+    int consumeMessageBatchMaxSize() default 1;
+
+    /**
      * Max re-consume times.
      *
      * In concurrently mode, -1 means 16;
