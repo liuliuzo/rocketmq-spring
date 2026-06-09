@@ -33,11 +33,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -77,7 +80,17 @@ public class ClientProducerApplication implements CommandLineRunner {
         testSendDelayMessage();
         testSendFIFOMessage();
         testSendNormalMessage();
+        testSendBatchMessage();
         testSendTransactionMessage();
+    }
+
+    void testSendBatchMessage() {
+        List<Message<?>> messages = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            messages.add(MessageBuilder.withPayload("batch message " + i).build());
+        }
+        List<SendReceipt> sendReceipts = rocketMQClientTemplate.syncSendBatch(normalTopic, messages);
+        System.out.printf("batchSend to topic %s sendReceipts=%s %n", normalTopic, sendReceipts);
     }
 
     void testAsyncSendMessage() {

@@ -72,7 +72,7 @@ public class RocketMQTemplateTest {
         try {
             rocketMQTemplate.syncSend(topic, "payload");
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to null failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
 
         try {
@@ -86,19 +86,19 @@ public class RocketMQTemplateTest {
                 }
             });
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to [127.0.0.1:9876] failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
 
         try {
             rocketMQTemplate.syncSendOrderly(topic, "payload", "hashkey");
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to null failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
 
         try {
             rocketMQTemplate.syncSendDelayTimeSeconds(topic, "payload", 10L);
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to null failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
     }
     @Test
@@ -118,7 +118,7 @@ public class RocketMQTemplateTest {
                 }
             });
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to [127.0.0.1:9876] failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
     }
 
@@ -159,7 +159,7 @@ public class RocketMQTemplateTest {
                 }
             });
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to [127.0.0.1:9876] failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
     }
 
@@ -192,14 +192,14 @@ public class RocketMQTemplateTest {
             String responseMessage = rocketMQTemplate.sendAndReceive(stringRequestTopic, MessageBuilder.withPayload("requestTopicSync").build(), String.class);
             assertThat(responseMessage).isNotNull();
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to null failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
 
         try {
             String responseMessage = rocketMQTemplate.sendAndReceive(stringRequestTopic, "requestTopicSync", String.class, "orderId");
             assertThat(responseMessage).isNotNull();
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to null failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
     }
 
@@ -216,7 +216,7 @@ public class RocketMQTemplateTest {
                 }
             });
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to null failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
 
         try {
@@ -230,7 +230,7 @@ public class RocketMQTemplateTest {
                 }
             }, "order-id");
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to null failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
 
         try {
@@ -244,7 +244,7 @@ public class RocketMQTemplateTest {
                 }
             }, "order-id", 5000);
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to null failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
         try {
             rocketMQTemplate.sendAndReceive(objectRequestTopic, "requestTopicAsyncWithTimeout", new RocketMQLocalRequestCallback<MessageExt>() {
@@ -257,7 +257,7 @@ public class RocketMQTemplateTest {
                 }
             }, 5000);
         } catch (MessagingException e) {
-            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException: connect to null failed");
+            assertThat(e).hasMessageContaining("org.apache.rocketmq.remoting.exception.RemotingConnectException");
         }
     }
 

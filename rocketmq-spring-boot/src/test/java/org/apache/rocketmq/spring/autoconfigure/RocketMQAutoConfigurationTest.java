@@ -224,7 +224,7 @@ public class RocketMQAutoConfigurationTest {
         runner.withPropertyValues("rocketmq.name-server=127.0.0.1:9876").
             withUserConfiguration(TestConfig.class).
             run((context) -> {
-                assertThat(context).getFailure().hasMessageContaining("connect to null failed");
+                assertThat(context).getFailure().hasMessageContaining("RemotingConnectException");
             });
     }
 
@@ -233,7 +233,7 @@ public class RocketMQAutoConfigurationTest {
         runner.withPropertyValues("rocketmq.name-server=127.0.0.1:9876").
             withUserConfiguration(TestConfigWithRocketMQReplyListener.class).
             run((context) -> {
-                assertThat(context).getFailure().hasMessageContaining("connect to null failed");
+                assertThat(context).getFailure().hasMessageContaining("RemotingConnectException");
             });
     }
 

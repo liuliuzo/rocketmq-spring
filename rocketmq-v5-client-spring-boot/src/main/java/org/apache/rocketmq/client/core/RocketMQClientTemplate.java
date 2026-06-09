@@ -37,9 +37,12 @@ import org.springframework.messaging.support.MessageBuilder;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 
 @SuppressWarnings({"WeakerAccess", "unused"})
@@ -323,6 +326,95 @@ public class RocketMQClientTemplate extends AbstractMessageSendingTemplate<Strin
             throw new MessagingException(e.getMessage(), e);
         }
         return future0;
+    }
+
+    /**
+     * Synchronously send a batch of messages to the same destination. Each message is delivered through the
+     * gRPC producer and the corresponding {@link SendReceipt} is collected, preserving the input order. Empty
+     * messages are skipped.
+     *
+     * @param destination formats: `topicName:tags`
+     * @param messages    the messages to be sent
+     * @return the list of {@link SendReceipt}, one per sent message
+     */
+    public List<SendReceipt> syncSendBatch(String destination, Collection<Message<?>> messages) {
+        return syncSendBatch(destination, messages, null, null);
+    }
+
+    /**
+     * Same to {@link #syncSendBatch(String, Collection)} with delay time and message group specified in addition.
+     *
+     * @param destination      formats: `topicName:tags`
+     * @param messages         the messages to be sent
+     * @param messageDelayTime time for message delay, {@code null} means no delay
+     * @param messageGroup     message group name for FIFO messages, {@code null} means not a FIFO batch
+     * @return the list of {@link SendReceipt}, one per sent message
+     */
+    public List<SendReceipt> syncSendBatch(String destination, Collection<Message<?>> messages,
+        Duration messageDelayTime, String messageGroup) {
+        if (Objects.isNull(messages) || messages.isEmpty()) {
+            throw new IllegalArgumentException("`messages` cannot be empty");
+        }
+        Producer grpcProducer = this.getProducer();
+        List<SendReceipt> sendReceipts = new ArrayList<>(messages.size());
+        try {
+            for (Message<?> message : messages) {
+                if (Objects.isNull(message) || Objects.isNull(message.getPayload())) {
+                    log.warn("Found an empty message in the batch, skip it");
+                    continue;
+                }
+                org.apache.rocketmq.client.apis.message.Message rocketMsg = this.createRocketMQMessage(destination, message, messageDelayTime, messageGroup);
+                sendReceipts.add(grpcProducer.send(rocketMsg));
+            }
+        } catch (Exception e) {
+            throw new MessagingException(e.getMessage(), e);
+        }
+        return sendReceipts;
+    }
+
+    /**
+     * Asynchronously send a batch of messages to the same destination. All messages are dispatched through
+     * {@link Producer#sendAsync}, and the returned future completes when every send has finished, yielding the
+     * receipts in the input order. Empty messages are skipped.
+     *
+     * @param destination formats: `topicName:tags`
+     * @param messages    the messages to be sent
+     * @return a future that completes with the list of {@link SendReceipt}, one per sent message
+     */
+    public CompletableFuture<List<SendReceipt>> asyncSendBatch(String destination, Collection<Message<?>> messages) {
+        return asyncSendBatch(destination, messages, null, null);
+    }
+
+    /**
+     * Same to {@link #asyncSendBatch(String, Collection)} with delay time and message group specified in addition.
+     *
+     * @param destination      formats: `topicName:tags`
+     * @param messages         the messages to be sent
+     * @param messageDelayTime time for message delay, {@code null} means no delay
+     * @param messageGroup     message group name for FIFO messages, {@code null} means not a FIFO batch
+     * @return a future that completes with the list of {@link SendReceipt}, one per sent message
+     */
+    public CompletableFuture<List<SendReceipt>> asyncSendBatch(String destination, Collection<Message<?>> messages,
+        Duration messageDelayTime, String messageGroup) {
+        if (Objects.isNull(messages) || messages.isEmpty()) {
+            throw new IllegalArgumentException("`messages` cannot be empty");
+        }
+        Producer grpcProducer = this.getProducer();
+        List<CompletableFuture<SendReceipt>> futures = new ArrayList<>(messages.size());
+        try {
+            for (Message<?> message : messages) {
+                if (Objects.isNull(message) || Objects.isNull(message.getPayload())) {
+                    log.warn("Found an empty message in the batch, skip it");
+                    continue;
+                }
+                org.apache.rocketmq.client.apis.message.Message rocketMsg = this.createRocketMQMessage(destination, message, messageDelayTime, messageGroup);
+                futures.add(grpcProducer.sendAsync(rocketMsg));
+            }
+        } catch (Exception e) {
+            throw new MessagingException(e.getMessage(), e);
+        }
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+            .thenApply(v -> futures.stream().map(CompletableFuture::join).collect(Collectors.toList()));
     }
 
     public Pair<SendReceipt, Transaction> sendMessageInTransaction(String destination, Object payload) throws ClientException {
