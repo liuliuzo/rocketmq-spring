@@ -22,6 +22,7 @@ import org.apache.rocketmq.spring.annotation.ConsumeMode;
 import org.apache.rocketmq.spring.annotation.MessageModel;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.autoconfigure.RocketMQProperties;
+import org.apache.rocketmq.spring.core.RocketMQBatchListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.apache.rocketmq.spring.core.RocketMQReplyListener;
 import org.slf4j.Logger;
@@ -71,12 +72,19 @@ public class RocketMQMessageListenerContainerRegistrar implements ApplicationCon
     public void registerContainer(String beanName, Object bean, RocketMQMessageListener annotation) {
         Class<?> clazz = AopProxyUtils.ultimateTargetClass(bean);
 
-        if (RocketMQListener.class.isAssignableFrom(bean.getClass()) && RocketMQReplyListener.class.isAssignableFrom(bean.getClass())) {
-            throw new IllegalStateException(clazz + " cannot be both instance of " + RocketMQListener.class.getName() + " and " + RocketMQReplyListener.class.getName());
+        boolean isListener = RocketMQListener.class.isAssignableFrom(bean.getClass());
+        boolean isBatchListener = RocketMQBatchListener.class.isAssignableFrom(bean.getClass());
+        boolean isReplyListener = RocketMQReplyListener.class.isAssignableFrom(bean.getClass());
+        int listenerTypeCount = (isListener ? 1 : 0) + (isBatchListener ? 1 : 0) + (isReplyListener ? 1 : 0);
+
+        if (listenerTypeCount > 1) {
+            throw new IllegalStateException(clazz + " cannot be instance of more than one of " + RocketMQListener.class.getName()
+                + ", " + RocketMQBatchListener.class.getName() + ", " + RocketMQReplyListener.class.getName());
         }
 
-        if (!RocketMQListener.class.isAssignableFrom(bean.getClass()) && !RocketMQReplyListener.class.isAssignableFrom(bean.getClass())) {
-            throw new IllegalStateException(clazz + " is not instance of " + RocketMQListener.class.getName() + " or " + RocketMQReplyListener.class.getName());
+        if (listenerTypeCount == 0) {
+            throw new IllegalStateException(clazz + " is not instance of " + RocketMQListener.class.getName()
+                + " or " + RocketMQBatchListener.class.getName() + " or " + RocketMQReplyListener.class.getName());
         }
 
         String consumerGroup = this.environment.resolvePlaceholders(annotation.consumerGroup());
@@ -142,6 +150,8 @@ public class RocketMQMessageListenerContainerRegistrar implements ApplicationCon
         container.setTlsEnable(environment.resolvePlaceholders(annotation.tlsEnable()));
         if (RocketMQListener.class.isAssignableFrom(bean.getClass())) {
             container.setRocketMQListener((RocketMQListener) bean);
+        } else if (RocketMQBatchListener.class.isAssignableFrom(bean.getClass())) {
+            container.setRocketMQBatchListener((RocketMQBatchListener) bean);
         } else if (RocketMQReplyListener.class.isAssignableFrom(bean.getClass())) {
             container.setRocketMQReplyListener((RocketMQReplyListener) bean);
         }

@@ -33,6 +33,7 @@ import org.apache.rocketmq.spring.annotation.ConsumeMode;
 import org.apache.rocketmq.spring.annotation.MessageModel;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.annotation.SelectorType;
+import org.apache.rocketmq.spring.core.RocketMQBatchListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.apache.rocketmq.spring.core.RocketMQReplyListener;
 import org.junit.Test;
@@ -44,6 +45,7 @@ import org.springframework.messaging.converter.StringMessageConverter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -102,6 +104,60 @@ public class DefaultRocketMQListenerContainerTest {
         });
         result = (Class) getMessageType.invoke(listenerContainer);
         assertThat(result.getName().equals(String.class.getName()));
+    }
+
+    @Test
+    public void testGetMessageTypeForBatchListener() throws Exception {
+        DefaultRocketMQListenerContainer listenerContainer = new DefaultRocketMQListenerContainer();
+        Method getMessageType = DefaultRocketMQListenerContainer.class.getDeclaredMethod("getMessageType");
+        Method getMethodParameter = DefaultRocketMQListenerContainer.class.getDeclaredMethod("getMethodParameter");
+        getMessageType.setAccessible(true);
+        getMethodParameter.setAccessible(true);
+
+        listenerContainer.setRocketMQBatchListener(new RocketMQBatchListener<String>() {
+            @Override
+            public void onMessage(List<String> messages) {
+            }
+        });
+        Class result = (Class) getMessageType.invoke(listenerContainer);
+        assertEquals(String.class.getName(), result.getName());
+        // A batch listener always receives a List, regardless of the element type.
+        MethodParameter methodParameter = (MethodParameter) getMethodParameter.invoke(listenerContainer);
+        assertEquals(List.class, methodParameter.getParameterType());
+
+        listenerContainer.setRocketMQBatchListener(new RocketMQBatchListener<MessageExt>() {
+            @Override
+            public void onMessage(List<MessageExt> messages) {
+            }
+        });
+        result = (Class) getMessageType.invoke(listenerContainer);
+        assertEquals(MessageExt.class.getName(), result.getName());
+    }
+
+    @Test
+    public void testHandleBatchMessage() throws Exception {
+        DefaultRocketMQListenerContainer listenerContainer = new DefaultRocketMQListenerContainer();
+        List<Object> received = new ArrayList<>();
+        listenerContainer.setRocketMQBatchListener(new RocketMQBatchListener<String>() {
+            @Override
+            public void onMessage(List<String> messages) {
+                received.addAll(messages);
+            }
+        });
+        Field messageType = DefaultRocketMQListenerContainer.class.getDeclaredField("messageType");
+        messageType.setAccessible(true);
+        messageType.set(listenerContainer, String.class);
+
+        List<MessageExt> msgs = new ArrayList<>();
+        MessageExt first = new MessageExt(0, System.currentTimeMillis(), null, System.currentTimeMillis(), null, null);
+        first.setBody("hello".getBytes());
+        MessageExt second = new MessageExt(0, System.currentTimeMillis(), null, System.currentTimeMillis(), null, null);
+        second.setBody("world".getBytes());
+        msgs.add(first);
+        msgs.add(second);
+
+        listenerContainer.handleBatchMessage(msgs);
+        assertThat(received).containsExactly("hello", "world");
     }
 
     @Test
@@ -246,6 +302,7 @@ public class DefaultRocketMQListenerContainerTest {
         assertEquals(anno.consumeMode(), container.getConsumeMode());
         assertEquals(anno.consumeThreadMax(), container.getConsumeThreadMax());
         assertEquals(anno.consumeThreadNumber(), container.getConsumeThreadNumber());
+        assertEquals(anno.consumeMessageBatchMaxSize(), container.getConsumeMessageBatchMaxSize());
         assertEquals(anno.messageModel(), container.getMessageModel());
         assertEquals(anno.selectorType(), container.getSelectorType());
         assertEquals(anno.selectorExpression(), container.getSelectorExpression());
@@ -260,6 +317,7 @@ public class DefaultRocketMQListenerContainerTest {
     @RocketMQMessageListener(consumerGroup = "abc1", topic = "test",
             consumeMode = ConsumeMode.ORDERLY,
             consumeThreadNumber = 3456,
+            consumeMessageBatchMaxSize = 16,
             messageModel = MessageModel.BROADCASTING,
             selectorType = SelectorType.SQL92,
             selectorExpression = "selectorExpression",
